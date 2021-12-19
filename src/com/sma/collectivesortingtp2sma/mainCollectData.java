@@ -10,6 +10,7 @@ public class mainCollectData extends Application {
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
         int nbTestPerSetings = 10;
+/*
 
         for (int speed = 1; speed <= 2; speed ++) {
             Agent.speed = speed;
@@ -41,6 +42,7 @@ public class mainCollectData extends Application {
                 }
             }
         }
+*/
 
         primaryStage.close();
 

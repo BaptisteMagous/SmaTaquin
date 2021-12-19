@@ -10,6 +10,7 @@ public class mainAnalyseError extends Application {
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
         int nbTestPerSetings = 10;
+/*
 
         for (float error = 0.05f; error <= 0.101f; error += 0.05f) {
             Agent.error = error;
@@ -43,6 +44,7 @@ public class mainAnalyseError extends Application {
                 }
             }
         }
+*/
 
         primaryStage.close();
 

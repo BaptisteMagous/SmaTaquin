@@ -10,7 +10,7 @@ public class mainAnalyse extends Application {
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
         int nbTestPerSetings = 10;
-
+/*
         for (float error = 0f; error <= 0.1f; error += 0.05f) {
             Agent.error = error;
             for (int speed = 1; speed <= 2; speed ++) {
@@ -42,7 +42,7 @@ public class mainAnalyse extends Application {
                     }
                 }
             }
-        }
+        }*/
 
         primaryStage.close();
 

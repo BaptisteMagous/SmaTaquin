@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.beans.PropertyChangeSupport;
 
+import static java.lang.Math.random;
+
 public class Grid {
 
     private int width;
@@ -98,30 +100,48 @@ public class Grid {
         Coordinates coordinates;
         int tries = 50;
         do{
-            coordinates = new Coordinates((int)(Math.random() * this.width), (int)(Math.random() * this.height));
+            coordinates = new Coordinates((int)(random() * this.width), (int)(random() * this.height));
             if(tries-- <= 0) return null;
         }while(!this.getCell(coordinates).isFree());
         return coordinates;
     }
 
     public Coordinates getRandomFreeCellAround(Coordinates coordinates) {
-        return getRandomFreeCellAround(coordinates, 1);
+        return getRandomFreeCellAround(coordinates, 5, (int) (random()*4));
     }
 
-    public Coordinates getRandomFreeCellAround(Coordinates coordinates, int distance) {
+    public Coordinates getRandomFreeCellAround(Coordinates coordinates, int try_left, int direction) {
+        if(try_left <= 0) return null;
+
         Coordinates new_coordinates;
-        int tries = 30;
-        do{
-            if(tries-- <= 0) return null;
+        switch (direction) {
+            case 0 -> new_coordinates = new Coordinates(
+                    coordinates.getX() + 1,
+                    coordinates.getY()
+            );
+            case 1 -> new_coordinates = new Coordinates(
+                    coordinates.getX() - 1,
+                    coordinates.getY()
+            );
+            case 2 -> new_coordinates = new Coordinates(
+                    coordinates.getX(),
+                    coordinates.getY() + 1
+            );
+            case 3 -> new_coordinates = new Coordinates(
+                    coordinates.getX(),
+                    coordinates.getY() - 1
+            );
+            default -> new_coordinates = new Coordinates(
+                    coordinates.getX(),
+                    coordinates.getY()
+            );
+        }
+        if(this.getCell(new_coordinates) != null && this.getCell(new_coordinates).isFree())
+            return new_coordinates;
+        else
+            return getRandomFreeCellAround(coordinates, try_left - 1, (direction++)%4);
 
-            // Get a cell around position
-            new_coordinates = new Coordinates(
-                    coordinates.getX() + new Random().nextInt(2 * distance + 1) - distance,
-                    coordinates.getY() + new Random().nextInt(2 * distance + 1) - distance
-                    );
-        }while(this.getCell(new_coordinates) == null || !this.getCell(new_coordinates).isFree());
 
-        return new_coordinates;
     }
 
     public void addObserver(ConcurrentLinkedQueue<Coordinates> updates) {

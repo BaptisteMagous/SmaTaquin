@@ -1,6 +1,6 @@
 package com.sma.collectivesortingtp2sma.models;
 
-public class Object implements IElement {
+public class Object {
 
     private Coordinates coordinates;
     private Environment environment;
@@ -19,23 +19,19 @@ public class Object implements IElement {
         this.type = type;
     }
 
-    @Override
     public Coordinates getCoordinates() {
         return coordinates;
     }
 
-    @Override
     public void setCoordinates(Coordinates coordinates) {
         this.coordinates = coordinates;
     }
 
 
-    @Override
     public Environment getEnvironment() {
         return environment;
     }
 
-    @Override
     public void setEnvironment(Environment environment) {
         this.environment = environment;
     }

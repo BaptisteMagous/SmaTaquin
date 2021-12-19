@@ -14,7 +14,7 @@ public class mainSolo extends Application {
 
         // Creating the environment
         Environment environment = new Environment(8, 8);
-        environment.setup(1, 5, 5);
+        environment.setup(3);
 
         // Create simulation and link it to the stage
         Simulation simulation = new Simulation(environment, primaryStage);

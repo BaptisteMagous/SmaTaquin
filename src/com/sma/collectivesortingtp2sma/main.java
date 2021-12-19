@@ -35,7 +35,7 @@ public class main extends Application {
 
         // Run simulation
         primaryStage.show();
-        simulation.run(20);
+        simulation.run(2000);
     }
 
     public static void main(String[] args) {

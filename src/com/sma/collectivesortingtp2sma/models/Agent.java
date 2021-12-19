@@ -14,12 +14,11 @@ public class Agent extends Thread{
     private double hue = 0.0;
     private int variation = 1;
     private int id;
+    private Coordinates objective;
 
     private boolean verbose = false;
 
     private Queue<Integer> lastVisited = new LinkedList<Integer>();
-
-    public static int speed = 1;
 
     private int steps = 0;
     private boolean slowMode = true;
@@ -129,9 +128,13 @@ public class Agent extends Thread{
 
         getEnvironment().getAgentGrid().move(
                 this.getCoordinates(),
-                this.getEnvironment().getAgentGrid().getRandomFreeCellAround(this.coordinates, speed)
+                this.getEnvironment().getAgentGrid().getRandomFreeCellAround(this.coordinates)
         );
 
+    }
+
+    public void setObjective(Coordinates objective) {
+        this.objective = objective;
     }
 
     /*private void analyseSurrondings(){

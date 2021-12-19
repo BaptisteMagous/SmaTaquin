@@ -12,9 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Display extends Thread{
@@ -28,8 +25,8 @@ public class Display extends Thread{
     private boolean running = false;
 
     private Image imgAgent = new Image("file:img/agent.png", 32, 32, false, false);
+    private Image imgObjective = new Image("file:img/objective.png", 32, 32, false, false);
     private Image imgEmpty = new Image("file:img/empty.png", 32, 32, false, false);
-    private ColorAdjust color_adjust = new ColorAdjust();
     private ConcurrentLinkedQueue<Coordinates> updates;
     private boolean verbose = false;
 
@@ -90,7 +87,7 @@ public class Display extends Thread{
         this.grid = new GridPane();
         this.environment = environment;
         this.width = this.environment.getGridWidth();
-        this.heigh = this.environment.getGridHeigh();
+        this.heigh = this.environment.getGridHeight();
 
         gridImages = new ImageView[width][heigh];
 
@@ -142,15 +139,23 @@ public class Display extends Thread{
         if(!running) return;
 
         Image newImage = imgEmpty;
+        double hue = 0.0;
 
         if (getEnvironment().getAgentGrid().getCell(coordinates).isOccupied()){
             Agent agent = getEnvironment().getAgentGrid().getCell(coordinates).getAgent();
             newImage = imgAgent;
-            color_adjust.setHue(agent.getHue());
+            hue = agent.getHue();
         }else{
-            newImage = imgEmpty;
-        }
+            double background = getEnvironment().getObjectiveAt(coordinates);
 
+            if(background == -2.0) newImage = imgEmpty;
+            else{
+                newImage = imgObjective;
+                hue = background;
+            }
+        }
+        ColorAdjust color_adjust = new ColorAdjust();
+        color_adjust.setHue(hue);
         gridImages[coordinates.getX()][coordinates.getY()].setImage(newImage);
         gridImages[coordinates.getX()][coordinates.getY()].setEffect(color_adjust);
 

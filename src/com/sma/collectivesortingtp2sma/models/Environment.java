@@ -2,17 +2,14 @@ package com.sma.collectivesortingtp2sma.models;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class Environment{
 
     private final int gridWidth;
-    private final int gridHeigh;
+    private final int gridHeight;
     private Grid agentGrid;
+    private double[][] objectiveImage;
 
     private final List<Agent> agents;
 
@@ -27,11 +24,18 @@ public class Environment{
 
     //region Constructors, Getters & Setters
 
-    public Environment(int width, int heigh){
+    public Environment(int width, int height){
         gridWidth = width;
-        gridHeigh = heigh;
+        gridHeight = height;
 
-        setAgentGrid(new Grid(gridWidth, gridHeigh));
+        setAgentGrid(new Grid(gridWidth, gridHeight));
+        objectiveImage = new double[width][height];
+
+        for (int y = 0; y < gridWidth; y++) {
+            for (int x = 0; x < gridHeight; x++) {
+                objectiveImage[x][y] = -2.0;
+            }
+        }
 
         agents = new ArrayList<Agent>();
     }
@@ -42,7 +46,10 @@ public class Environment{
             Agent newAgent = new Agent(getNbAgents());
             newAgent.setHue(Math.random() * 2 - 1);
             newAgent.setVariation(1);
-            addAgent(newAgent);
+            Coordinates objective = agentGrid.getRandomFreeCell();
+            newAgent.setObjective(objective);
+            setObjectiveAt(objective, newAgent.getHue());
+            addAgent(newAgent, objective);
         }
     }
     public Grid getAgentGrid(){
@@ -52,8 +59,8 @@ public class Environment{
     public int getGridWidth(){
         return gridWidth;
     }
-    public int getGridHeigh(){
-        return gridHeigh;
+    public int getGridHeight(){
+        return gridHeight;
     }
 
     public void setAgentGrid(Grid agentGrid) {
@@ -91,7 +98,7 @@ public class Environment{
     public String toString(){
         String display =
                 ("╔" + "═".repeat(gridWidth) + "╗\n")
-                        + ("║" + " ".repeat(gridWidth) + "║\n").repeat(gridHeigh)
+                        + ("║" + " ".repeat(gridWidth) + "║\n").repeat(gridHeight)
                         + ("╚" + "═".repeat(gridWidth) + "╝\n");
 
         int lineLength = 3 + gridWidth;
@@ -144,4 +151,10 @@ public class Environment{
         return 10;
     }
 
+    public double getObjectiveAt(Coordinates coordinates) {
+        return objectiveImage[coordinates.getX()][coordinates.getY()];
+    }
+    public void setObjectiveAt(Coordinates coordinates, double hue) {
+        objectiveImage[coordinates.getX()][coordinates.getY()] = hue;
+    }
 }
