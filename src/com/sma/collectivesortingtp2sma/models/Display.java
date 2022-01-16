@@ -60,7 +60,7 @@ public class Display extends Thread{
         this.stage.setHeight(bounds.getHeight()-200);
 
         // Set the name
-        this.stage.setTitle("Simulation de tri multi-agents");
+        this.stage.setTitle("Taquin");
 
         // Setup the root borderpane
         BorderPane root = new BorderPane();

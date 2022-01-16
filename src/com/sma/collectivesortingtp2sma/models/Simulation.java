@@ -5,8 +5,6 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Simulation{
@@ -62,31 +60,26 @@ public class Simulation{
         displayer.stop();
         int score = getEnvironment().evaluateEnvironment();
         System.out.println("Simulation stopped " + score);
-        if(true) return; //Don't write report yet
 
         try {
             File file = new File("reports.csv");
             FileWriter myWriter = new FileWriter("reports.csv", true);
 
             if (file.createNewFile()) {
-                myWriter.write("width, heigh, nbAgent, nbObject, steps, score, speed, vision, memorySize, kPlus, kMinus, error\n");
+                myWriter.write("width, height, nbAgent, steps, completed, score, nbMissingAgent");
             }
-/*
 
-            myWriter.write(environment.getGridWidth() + ","
-                    + environment.getGridHeigh() + ","
-                    + environment.getNbAgents() + ","
-                    + environment.getNbObjects() + ","
-                    + steps + ","
-                    + score + ","
-                    + Agent.speed + ","
-                    + Agent.vision + ","
-                    + Agent.memorySize + ","
-                    + Agent.kPlus + ","
-                    + Agent.kMinus + ","
-                    + Agent.error + "\n"
+
+            myWriter.write(environment.getGridWidth()
+                    + "," + environment.getGridHeight()
+                    + "," + environment.getNbAgents()
+                    + "," + steps
+                    + "," + environment.isCompleted()
+                    + "," + score
+                    + "," + environment.getMisplacedAgent()
+                    + "\n"
             );
-*/
+
 
             myWriter.close();
         } catch (IOException e) {

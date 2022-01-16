@@ -1,27 +1,30 @@
 package com.sma.collectivesortingtp2sma.models;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import static java.lang.Math.pow;
 import static java.lang.Math.random;
 
 public class Agent extends Thread{
+    //static Agent fakeAgent = new Agent(-1);
     protected Coordinates coordinates = null;
     private Environment environment;
 
+    private int id;
     private double hue = 0.0;
     private int variation = 1;
-    private int id;
+
     private Coordinates objective;
+
+    private IAType ia = IAType.RandomAround;
+    private int vision = 2;
 
     private boolean verbose = false;
 
     private Queue<Integer> lastVisited = new LinkedList<Integer>();
 
     private int steps = 0;
-    private boolean slowMode = true;
+    private boolean slowMode = false;
     private float slowModeSpeed = 400;
 
     public Agent(int id){
@@ -31,6 +34,11 @@ public class Agent extends Thread{
     public Agent(int id, Coordinates coordinates){
         this.id = id;
         this.coordinates = coordinates;
+    }
+    public Agent(int id, Coordinates coordinates, IAType ia){
+        this.id = id;
+        this.coordinates = coordinates;
+        this.ia = ia;
     }
 
     // region Getters & Setters
@@ -49,6 +57,14 @@ public class Agent extends Thread{
 
     public void setCoordinates(Coordinates coordinates) {
         this.coordinates = coordinates;
+    }
+
+    public Coordinates getObjective() {
+        return this.objective;
+    }
+
+    public void setObjective(Coordinates objective) {
+        this.objective = objective;
     }
 
 
@@ -83,6 +99,9 @@ public class Agent extends Thread{
         slowMode = slow;
     }
 
+    public int getSteps(){
+        return steps;
+    }
     public void setSteps(int steps){
         this.steps = steps;
     }
@@ -91,7 +110,11 @@ public class Agent extends Thread{
 
     //region Thread Run
     public void run(){
-        init();
+        try {
+            init();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         /*if (slowMode) {
             try {
                 Thread.sleep((long) (2000));
@@ -112,8 +135,9 @@ public class Agent extends Thread{
         terminate();
     }
 
-    protected void init() {
+    protected void init() throws InterruptedException {
         if(verbose) System.out.println("BOT started");
+        if(slowMode) Thread.sleep((long) 8000);
     }
 
     protected void terminate() {
@@ -123,18 +147,95 @@ public class Agent extends Thread{
     //endregion
 
     //region Actions
-    protected void execute() throws InterruptedException {
+    protected void execute() throws InterruptedException { 
         if(verbose) System.out.println("BOT try moving");
 
-        getEnvironment().getAgentGrid().move(
-                this.getCoordinates(),
-                this.getEnvironment().getAgentGrid().getRandomFreeCellAround(this.coordinates)
-        );
+        // Select a coordinates to move to
+        Coordinates moveFrom = getCoordinates();
+        Coordinates moveTo = null;
 
-    }
+        switch (ia){
+            case Random:
+                // Random agent just select a random free cell around them (Strict Melee)
+                moveTo = this.getEnvironment().getAgentGrid().getRandomFreeCellAround(moveFrom);
+                break;
 
-    public void setObjective(Coordinates objective) {
-        this.objective = objective;
+            // Straight and RandomAround act similarly
+            // They advance toward their objective. They pick randomly between the X and Y axis,
+            // and move 1 space along that axis toward their destination (axis are weighted by the distance).
+            // RandomAround only differs by the fact the agent will randomly move randomly. If it is far away from
+            // his destination, it will tend to be more random, and as it approach his objective, it will be more likely
+            // to act like Straight
+            case Straight:
+            case RandomAround:
+
+                // Decide whether to advance or move randomly based on the distance
+                boolean advance;
+                double distance = Coordinates.getDistance(moveFrom, objective);
+                if(distance > 0.5){
+                    if (ia == IAType.Straight) advance = true; // Straight IA always advance
+                    else                       advance = Math.random() < vision/distance;
+
+                    // Advance Straight
+                    if(advance){
+                        // Decide along which axis to move on
+                        boolean moveX = Math.random() < Coordinates.getXDistance(moveFrom, objective)/distance;
+
+                        moveTo = new Coordinates(moveFrom);
+                        if(moveX) moveTo.addX(Coordinates.getXDirection(moveFrom, objective));
+                        if(!moveX) moveTo.addY(Coordinates.getYDirection(moveFrom, objective));
+                    }
+
+                    // Advance Randomly
+                    else
+                        // Select a random free cell around it (Strict Melee)
+                        moveTo = this.getEnvironment().getAgentGrid().getRandomFreeCellAround(moveFrom);
+
+                }
+                break;
+        }
+
+
+        // Retrieve all mails and check his destination isn't a a cell that is reserved by another agent
+        Mail[] mails = environment.getMailbox().retrieve(getAgentId());
+        boolean canMoveTo = true;
+        boolean mustMove = false;
+        for (Mail mail:mails) {
+            if(mail == null) continue;
+            //Don't go on a cell that is requested by another agent
+            if(canMoveTo
+                    && mail.getAction() == Action.CLEAR_POSITION
+                    && mail.getCoordinates().equals(moveTo)) canMoveTo = false;
+
+            //Move if another agent request free space on his cell
+            if (!mustMove
+                    && mail.getAction() == Action.CLEAR_POSITION
+                    && mail.getCoordinates().equals(moveFrom)) mustMove = true;
+        }
+
+
+
+        boolean hasMoved = canMoveTo && getEnvironment().getAgentGrid().move(moveFrom, moveTo);
+
+        if(!hasMoved && mustMove) { //If we weren't able to move but another agent asked this agent to move
+            //Try to leave the cell in any possible way
+            moveTo = this.getEnvironment().getAgentGrid().getRandomFreeCellAround(moveFrom);
+            hasMoved = getEnvironment().getAgentGrid().move(moveFrom, moveTo);
+        }
+
+        if(!hasMoved) { // If an agent was blocking the way, send it a mail to ask to move away
+            Cell destination = getEnvironment().getAgentGrid().getCell(moveTo);
+            if(destination != null && destination.getAgent() != null){
+                getEnvironment().getMailbox().send(getAgentId(), destination.getAgent().getAgentId(), Action.CLEAR_POSITION, moveTo);
+            }
+        }
+
+        if(hasMoved){
+            if(moveFrom.equals(getObjective()))
+                getEnvironment().updateMisplacedAgents(1);
+            if(moveTo.equals(getObjective()))
+                getEnvironment().updateMisplacedAgents(-1);
+        }
     }
 
     /*private void analyseSurrondings(){

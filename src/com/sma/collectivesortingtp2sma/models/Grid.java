@@ -1,11 +1,8 @@
 package com.sma.collectivesortingtp2sma.models;
 
-import java.util.Observable;
-import java.util.Observer;
-import java.util.Random;
+import java.beans.PropertyChangeSupport;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
-import java.beans.PropertyChangeSupport;
 
 import static java.lang.Math.random;
 
@@ -25,8 +22,8 @@ public class Grid {
         this.height = height;
         this.grid = new Cell[width][height];
 
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
                 this.grid[x][y] = new Cell(new Coordinates(x, y));
             }
         }
@@ -54,11 +51,13 @@ public class Grid {
 
     public boolean move(Coordinates from, Coordinates to) throws InterruptedException {
         available.acquire();
-        boolean isMoveCorrect =     from != null && !this.getCell(from).isFree()
-                                 && to   != null &&  this.getCell(to).isFree();
+        boolean isMoveCorrect =     from != null && this.getCell(from) != null && !this.getCell(from).isFree()
+                                 && to   != null && this.getCell(to)   != null &&  this.getCell(to).isFree();
 
         if(isMoveCorrect)
             this.getCell(to).setAgent(this.getCell(from).popAgent());
+
+
 
         available.release();
 

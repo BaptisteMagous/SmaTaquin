@@ -9,11 +9,13 @@ public class Environment{
     private final int gridWidth;
     private final int gridHeight;
     private Grid agentGrid;
+    private Grid objectiveGrid;
     private double[][] objectiveImage;
 
     private final List<Agent> agents;
 
     private int runningAgent = 0;
+    private int misplacedAgent = 0;
     private boolean running = false;
     private boolean slowMode = false;
 
@@ -22,6 +24,8 @@ public class Environment{
     private Simulation simulation;
     static private int neighborhoodToConsiderForEvaluation = 1;
 
+    private Mailbox mailbox;
+
     //region Constructors, Getters & Setters
 
     public Environment(int width, int height){
@@ -29,31 +33,39 @@ public class Environment{
         gridHeight = height;
 
         setAgentGrid(new Grid(gridWidth, gridHeight));
+        setObjectiveGrid(new Grid(gridWidth, gridHeight));
         objectiveImage = new double[width][height];
 
-        for (int y = 0; y < gridWidth; y++) {
-            for (int x = 0; x < gridHeight; x++) {
+        for (int x = 0; x < gridWidth; x++) {
+            for (int y = 0; y < gridHeight; y++) {
                 objectiveImage[x][y] = -2.0;
             }
         }
 
         agents = new ArrayList<Agent>();
+        mailbox = new Mailbox();
     }
 
     public void setup(int nbAgent) throws InterruptedException {
+        float maxAgent = nbAgent;
+
         // Add agents
         for(; nbAgent > 0; nbAgent--){
             Agent newAgent = new Agent(getNbAgents());
-            newAgent.setHue(Math.random() * 2 - 1);
+
+            newAgent.setHue(-1 + 2*nbAgent/maxAgent);
             newAgent.setVariation(1);
-            Coordinates objective = agentGrid.getRandomFreeCell();
+
+            Coordinates position = agentGrid.getRandomFreeCell();
+            newAgent.setCoordinates(position);
+
+            Coordinates objective = objectiveGrid.getRandomFreeCell();
+
             newAgent.setObjective(objective);
             setObjectiveAt(objective, newAgent.getHue());
-            addAgent(newAgent, objective);
+
+            addAgent(newAgent);
         }
-    }
-    public Grid getAgentGrid(){
-        return agentGrid;
     }
 
     public int getGridWidth(){
@@ -63,8 +75,17 @@ public class Environment{
         return gridHeight;
     }
 
+    public Grid getAgentGrid(){
+        return agentGrid;
+    }
     public void setAgentGrid(Grid agentGrid) {
         this.agentGrid = agentGrid;
+    }
+    public Grid getObjectiveGrid(){
+        return objectiveGrid;
+    }
+    public void setObjectiveGrid(Grid objectiveGrid) {
+        this.objectiveGrid = objectiveGrid;
     }
 
     public void setSlowMode(boolean slow) {
@@ -81,14 +102,19 @@ public class Environment{
     }
 
     public void addAgent(Agent agent, Coordinates coordinates) throws InterruptedException {
-        if(getAgentGrid().insertAgent(agent, coordinates)) {
+        agent.setCoordinates(coordinates);
+        addAgent(agent);
+    }
+    public void addAgent(Agent agent) throws InterruptedException {
+        if(agent.getCoordinates() == null)
+            agent.setCoordinates(getAgentGrid().getRandomFreeCell());
+
+        if(getAgentGrid().insertAgent(agent, agent.getCoordinates())) {
             agents.add(agent);
             agent.setEnvironment(this);
             agent.setSlowMode(this.slowMode);
         }
-    }
-    public void addAgent(Agent agent) throws InterruptedException {
-        addAgent(agent, getAgentGrid().getRandomFreeCell());
+        getMailbox().register(agent.getAgentId());
     }
 
     public int getNbAgents() {
@@ -96,10 +122,9 @@ public class Environment{
     }
 
     public String toString(){
-        String display =
-                ("╔" + "═".repeat(gridWidth) + "╗\n")
-                        + ("║" + " ".repeat(gridWidth) + "║\n").repeat(gridHeight)
-                        + ("╚" + "═".repeat(gridWidth) + "╝\n");
+        String display = ("╔" + "═".repeat(gridWidth) + "╗\n")
+                            + ("║" + " ".repeat(gridWidth) + "║\n").repeat(gridHeight)
+                            + ("╚" + "═".repeat(gridWidth) + "╝\n");
 
         int lineLength = 3 + gridWidth;
         StringBuilder displayBuilder = new StringBuilder(display);
@@ -114,11 +139,24 @@ public class Environment{
 
         return displayBuilder.toString();
     }
+
+    public Mailbox getMailbox() {
+        return mailbox;
+    }
+
+    public boolean isCompleted(){return misplacedAgent <= 0;}
+
+    public int getMisplacedAgent() {
+        return misplacedAgent;
+    }
     //endregion
 
     //region Starting and stopping
     synchronized public void start(int maxStep) {
         if(verbose) System.out.println("Starting the environment with " + agents.size() + " agents !");
+
+        misplacedAgent = evaluateMissingAgents();
+
         agents.forEach(agent -> agent.setSteps(maxStep));
 
         runningAgent = agents.size();
@@ -129,7 +167,11 @@ public class Environment{
 
     public void stop() {
         agents.forEach(Thread::interrupt);
-        if(verbose) System.out.println("Stopped the environment.");
+        running = false;
+
+        simulation.environmentStoped();
+
+        if(verbose) System.out.println("Simulation ended !");
     }
     //endregion
 
@@ -138,23 +180,40 @@ public class Environment{
 
         if(!running) return;
 
-        if(runningAgent == 0) { //If all agents are done
-            running = false;
-
-            simulation.environmentStoped();
-
-            if(verbose) System.out.println("Simulation ended !");
-        }
+        if(runningAgent == 0) //If all agents are done
+            stop();
     }
 
     public int evaluateEnvironment() {
-        return 10;
+        int moveLefts = 0;
+        for(Agent agent:agents){
+            moveLefts += agent.getSteps();
+        }
+
+        return moveLefts;
+    }
+
+    public int evaluateMissingAgents() {
+        int missing = 0;
+        for(Agent agent:agents){
+            if(!agent.getCoordinates().equals(agent.getObjective())) missing++;
+        }
+
+        return missing;
     }
 
     public double getObjectiveAt(Coordinates coordinates) {
         return objectiveImage[coordinates.getX()][coordinates.getY()];
     }
     public void setObjectiveAt(Coordinates coordinates, double hue) {
+        objectiveGrid.getCell(coordinates).setAgent(new Agent(-1));
         objectiveImage[coordinates.getX()][coordinates.getY()] = hue;
     }
+
+    public void updateMisplacedAgents(int i) {
+        misplacedAgent += i;
+
+        if(misplacedAgent <= 0) stop();
+    }
+
 }
